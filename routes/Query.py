@@ -24,5 +24,7 @@ results = collection.aggregate([
     }}
 ]);
 
+Values=[];
 for document in results:
-    print(f'Title: {document["description"]},\n_Id: {document["_id"]}\n')
+    Values.append({'_id':str(document["_id"]),'description':document["description"]});
+    print(Values)

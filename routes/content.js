@@ -14,14 +14,12 @@ const {tag_segregation}=require("../middleware/tag-segregation");
 const {ContentModel}=require("../database/content");
 const {TagsModel}=require("../database/tags");
 const { spawn } = require('child_process');
-const {contentidcypher}=require("../class/Cypherdata");
 mongoose.connect("mongodb+srv://kaustavnag13:IAMKaustav16@cluster0.nn3tf.mongodb.net/store");
-
 
 router.use(verifyuser);
 router.use('/:userid',check_user);
-router.delete("/:userid/:contentid",check_content,async (req,res)=>{
-    const contentid=req.contentid;
+router.delete("/:userid/:contentid",async (req,res)=>{
+    const contentid=req.params.contentid;
     try{
         const data=await ContentModel.findByIdAndUpdate(contentid,{
             status:false,
@@ -42,7 +40,7 @@ router.delete("/:userid/:contentid",check_content,async (req,res)=>{
 });
 async function AIquery(query) {
     return new Promise((resolve, reject) => {
-        const python = spawn('python', ['C:/Users/Kaustav/OneDrive/Desktop/Second Brain/routes/Query.py',query]);
+        const python = spawn('python', ['C:/Users/Kaustav/OneDrive/Desktop/SD/Second Brain/routes/Query.py',query]);
         let output = '';
         let errorOutput = '';
         python.stdout.on('data', (data) => {
@@ -60,18 +58,20 @@ async function AIquery(query) {
         });
     })
 }
-router.get("/:userid/query",async (req,res)=>{
+router.post("/:userid/query",async (req,res)=>{
     const {query}=req.body;
     try {
         console.log("Executing Python script...");
         const result = await AIquery(query);
-        console.log(result);
-        res.json(result);
+        const result_obj = result.replace(/'/g, '"');
+        const result_data= JSON.parse(result_obj);
+        res.json(result_data);
     } catch (err) {
         console.error(`Error: ${err}`);
         res.status(500).send(err); // Send error to client
     }
 })
+
 router.get("/:userid",async (req,res)=>{
     try{
         const data=await ContentModel.find({
@@ -96,9 +96,8 @@ router.get("/:userid",async (req,res)=>{
     }
 });
 
-router.get("/:userid/:contentid",check_content,async (req,res)=>{
-    const contentid=req.contentid;
-    console.log(contentid);
+router.get("/:userid/:contentid",async (req,res)=>{
+    const contentid=req.params.contentid;
     try{
         const data=await ContentModel.findById(contentid);
         if(!data || !data.status){
@@ -114,11 +113,10 @@ router.get("/:userid/:contentid",check_content,async (req,res)=>{
     }
 });
 
-
 router.use(tag_segregation);
 async function AIDrivenresults(id) {
     return new Promise((resolve, reject) => {
-        const python = spawn('python', ['C:/Users/Kaustav/OneDrive/Desktop/Second Brain/routes/AI.py',id]);
+        const python = spawn('python', ['C:/Users/Kaustav/OneDrive/Desktop/SD/Second Brain/routes/AI.py',id]);
         let output = '';
         let errorOutput = '';
         python.stdout.on('data', (data) => {
@@ -152,14 +150,6 @@ router.post("/:userid",async (req,res)=>{
             });
             tagid.push(tag._id);
         }
-        // const python = spawn('python', ['AI.py', title]);
-        // python.stdout.on('data', function (data) {
-        //     console.log('Pipe data from python script ...');
-        //     dataToSend = data.toString();
-        // });
-        // python.on('close', () => {
-
-        // });
         await ContentModel.create({
             creatorid:req.userid,
             title,
@@ -179,15 +169,6 @@ router.post("/:userid",async (req,res)=>{
         console.log("Executing Python script...");
         const result = await AIDrivenresults(id);
         console.log(result);
-        const encryptid=new contentidcypher(id);
-        const encrypt_content=encryptid.encrypt();
-        const time = 300*60*1000;
-        res.cookie("contentid",encrypt_content, {
-            maxAge: time,
-        });    
-        res.status(200).json({
-            message:"Content Added Successfully",
-        })
     }catch(err){
         console.error("Error occurred:", err);
         if (err.name === "ValidationError") {
@@ -200,8 +181,7 @@ router.post("/:userid",async (req,res)=>{
     }
 });
 
-router.patch("/:userid/:contentid",check_content,async (req,res)=>{
-    const contentid=req.contentid;
+router.patch("/:userid/:contentid",async (req,res)=>{
     const {title,type,url,description,tags}=req.body;
     try{
         let index,tagid=[];

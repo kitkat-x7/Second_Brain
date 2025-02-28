@@ -23,21 +23,6 @@ class useridcypher{
     }
 }
 
-class contentidcypher{
-    constructor(contentid){
-        this.contentid=contentid;
-    }
-    encrypt() {
-        const text = crypto.AES.encrypt(this.contentid, key).toString();
-        return text;
-    }
-    decrypt(encrypted_info) {
-        const decrypted = crypto.AES.decrypt(encrypted_info, key).toString(crypto.enc.Utf8);
-        return decrypted;
-    }
-}
-
 module.exports={
     useridcypher,
-    contentidcypher
 }
